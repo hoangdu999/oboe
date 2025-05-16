@@ -1,0 +1,44 @@
+name: Deploy Fullstack
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Deploy Frontend via SSH
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ubuntu
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /var/www/vue-app
+          rm -rf *
+          mkdir temp && cd temp
+          git clone ${{ secrets.REPO_URL }} .
+          cp -r frontend/dist/* ..
+          cd .. && rm -rf temp
+          echo "Frontend deployed!"
+
+    - name: Deploy Backend via SSH
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ubuntu
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /var/www/backend
+          rm -rf *
+          mkdir temp && cd temp
+          git clone ${{ secrets.REPO_URL }} .
+          cp -r backend/* ..
+          cd .. && rm -rf temp
+          pm2 restart all || pm2 start index.js
+          echo "Backend deployed!"
